@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
 	fp = fopen(argv[1], "r");
 	// error check.
 
-	player = argv[2];
+	player = *argv[2];
 
 	char board[8][8];
 
@@ -40,9 +40,9 @@ int main(int argc, char* argv[]) {
 		fgetc(fp);
 	}
 
-	char *mv, oppmv;
-	mv = malloc(sizzeof(char)*5); // X#-Z#
-	oppmv = malloc(sizzeof(char)*5); // X#-Z#
+	char *mv, *oppmv;
+	mv = malloc(sizeof(char)*5); // X#-Z#
+	oppmv = malloc(sizeof(char)*5); // X#-Z#
 	int play = 0;
 	//input from opponent and displaying moves.
 	// thread later?
