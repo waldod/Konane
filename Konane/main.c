@@ -6,7 +6,7 @@
 
 /*
  * File:   main.c
- * Author: Majo
+ * Author: Delaney Waldo
  *
  * Created on October 31, 2016, 5:55 PM
  */
