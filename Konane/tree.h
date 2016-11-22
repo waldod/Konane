@@ -46,7 +46,7 @@ void recursive_free_tree(struct tree_node *root, void (*free_value)(void *), str
  * @max_depth - max depth to go down to (-1 if no limit)
  * @eval - function to run once we reach a node
  */
-void breadth_traverse(struct tree_node *root, int max_depth, void (*eval)(void *));
+void breadth_traverse(struct tree_node *root, int max_depth, void (*eval)(struct tree_node *));
 
 /**
  * init_tree() - initializes the tree ADT

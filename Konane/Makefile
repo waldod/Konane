@@ -1,9 +1,17 @@
-CC = gcc
+SHELL=/bin/bash
+CC=gcc
+CFLAGS=-Wall
+LDLIBS=-pthread
 
-CFLAGS = -Wall
+.PHONY: konane clean
 
-Konane: main.c
-	$(CC) $(CFLAGS) -o Konane main.c
+all: konane
+
+konane: konane.o tree.o linklist.o queue.o
+konane.o: konane.c tree.h
+tree.o: tree.c tree.h queue.h
+queue.o: queue.c queue.h linklist.h
+linklist.o: linklist.c linklist.h
 
 clean:
-	rm Konane
+	$(RM) konane konane.o tree.o queue.o linklist.o
