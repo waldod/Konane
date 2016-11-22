@@ -63,7 +63,7 @@ struct tree_node *init_tree(void *value)
 	return root;
 }
 
-void breadth_traverse(struct tree_node *root, int max_depth, void (*eval)(void *))
+void breadth_traverse(struct tree_node *root, int max_depth, void (*eval)(struct tree_node  *))
 {
 	struct queue *to_see = init_queue();
 	struct tree_node *cur;
@@ -75,7 +75,7 @@ void breadth_traverse(struct tree_node *root, int max_depth, void (*eval)(void *
 	while ((cur = dequeue(to_see)) != NULL) {
 		
 		if (max_depth == -1 || cur->depth - start_depth < max_depth) {
-			eval(cur->value);
+			eval(cur);
 			int child_count = 0;
 
 			struct tree_node **children = get_tree_children(cur, &child_count);
