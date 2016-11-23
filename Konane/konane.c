@@ -232,10 +232,10 @@ struct state *get_moves (struct state *current, int *count)
 			exit(1);
 		}
 
-		struct state *state1 = create_state(current, "D4");
+		struct state *state1 = create_state(current, 'D4');
 		update_board(state1);
 		tmpcount++;
-		struct state *state2 = create_state(current, "E5");
+		struct state *state2 = create_state(current, 'E5');
 		update_board(state2);
 		states[0] = state1;
 		states[1] = state2;
@@ -248,7 +248,7 @@ struct state *get_moves (struct state *current, int *count)
 			exit(1);
 		}
 
-		struct state *state1 = create_state(current, "E4");
+		struct state *state1 = create_state(current, 'E4');
 		update_board(state1);
 		tmpcount++;
 
