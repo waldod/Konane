@@ -67,6 +67,7 @@ void print_usage(char *exec_name)
 /**
  * update_state() - apply a move
  * @move - move to make
+
 static void update_state(char *move)
 {
 	int child_count = 0;
@@ -159,7 +160,7 @@ void update_board(struct state *change)
 	char *move = change->action;
 	char *prev, *new, dash;
 	dash = '-';
-	
+
 	char board[BOARD_SIZE][BOARD_SIZE];
 	memcpy(board, change->board, sizeof(change->board));
 
@@ -250,14 +251,15 @@ struct state *get_moves (struct state *current, int *count)
 		struct state *state1 = create_state(current, "E4");
 		update_board(state1);
 		tmpcount++;
-		
+
 		struct state *state2 = create_state(current, "D5");
 		update_board(state2);
 		states[0] = state1;
 		states[1] = state2;
 	}
 
-	return states[0]; 
+	return states[0];
+
 }
 
 
