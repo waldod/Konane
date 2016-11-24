@@ -132,7 +132,7 @@ int count_o (struct state *current)
 
 int translate_letter(char letter)
 {
-	//fprintf("%c \n", letter);
+	fprintf(stdout, "%c \n", letter);
 	switch (letter){
 		case 'A':
 			return 0;
@@ -161,18 +161,15 @@ void update_board(struct state *change)
 	char *prev, *new, dash;
 	dash = '-';
 
-	char board[BOARD_SIZE][BOARD_SIZE];
-	memcpy(board, change->board, sizeof(change->board));
-
 	prev = malloc(sizeof(char)*8);
 
 	// location of initial square
-	int j = translate_letter(*(move + 0)); // letter is column
-	int i = (int)*(move + 1) - 8; // number is row.
+	int j = translate_letter(move[0]); // letter is column
+	int i = 8 - (strtol(&move[1], &new, 10)); // number is row.
 
 	// adjust board
-	*prev = board[i][j];
-	board[i][j] = 'O';
+	prev = change->board[i][j];
+	change->board[i][j] = 'O';
 
 	if (*(move +2) != '-') {
 
@@ -198,11 +195,9 @@ void update_board(struct state *change)
 				change->board[i+1][j] = 'O';
 			}
 		}
-		*new = change->board[q][p];
-		change->board[q][p] = *prev;
+		new = change->board[q][p];
+		change->board[q][p] = prev;
 	}
-
-	free(prev);
 
 }
 
@@ -232,10 +227,11 @@ struct state *get_moves (struct state *current, int *count)
 			exit(1);
 		}
 
-		struct state *state1 = create_state(current, 'D4');
+		struct state *state1 = create_state(current, "D4");
+		fprintf(stdout, "%s !\n", state1->action);
 		update_board(state1);
 		tmpcount++;
-		struct state *state2 = create_state(current, 'E5');
+		struct state *state2 = create_state(current, "E5");
 		update_board(state2);
 		states[0] = state1;
 		states[1] = state2;
@@ -248,7 +244,7 @@ struct state *get_moves (struct state *current, int *count)
 			exit(1);
 		}
 
-		struct state *state1 = create_state(current, 'E4');
+		struct state *state1 = create_state(current, "E4");
 		update_board(state1);
 		tmpcount++;
 
@@ -379,17 +375,15 @@ void setup_game(int argc, char *argv[]) {
 
 	int count = 0;
 	print_board(initial_state);
+
 	struct state *state;
 	state = malloc(sizeof(struct state));
 	state = create_state(initial_state, NULL);
-
-	print_board(state);
 
 	while (count == 0) {
 		if (player == turn) {
 			// IMPORTANT New line at end of move?
 			state = get_moves(initial_state, &count);
-
 			//move = state->action;
 			print_board(state);
 			fprintf(stdout, "%s", state->action);
