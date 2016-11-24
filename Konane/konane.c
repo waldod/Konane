@@ -372,7 +372,6 @@ void setup_game(int argc, char *argv[]) {
 		}
 		// get rid of new character line at end of line.
 		fgetc(fp);
-		fgetc(fp);
 	}
 	// TODO REMOVE
 
@@ -387,7 +386,6 @@ void setup_game(int argc, char *argv[]) {
 	while (count == 0) {
 		if (player == turn) {
 			// IMPORTANT New line at end of move?
-			//THIS IS THE PROBLEM HERE
 			state = get_moves(initial_state, &count);
 
 			//move = state->action;
