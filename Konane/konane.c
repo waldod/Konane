@@ -132,7 +132,6 @@ int count_o (struct state *current)
 
 int translate_letter(char letter)
 {
-	fprintf(stdout, "%c \n", letter);
 	switch (letter){
 		case 'A':
 			return 0;
@@ -228,7 +227,6 @@ struct state *get_moves (struct state *current, int *count)
 		}
 
 		struct state *state1 = create_state(current, "D4");
-		fprintf(stdout, "%s !\n", state1->action);
 		update_board(state1);
 		tmpcount++;
 		struct state *state2 = create_state(current, "E5");
