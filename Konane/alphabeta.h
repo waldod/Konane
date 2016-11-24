@@ -1,17 +1,16 @@
 #ifndef ALPHABETA_H
 #define ALPHABETA_H
 
+#include <stdbool.h>
 
-#define foreach(item, list) \
-    for(T * item = list->head; item != NULL; item = item->next)
+void *alpha_beta_search(void *state);
+float max_value(void *state, float alpha, float beta);
+float min_value(void *state, float alpha, float beta);
 
-char alpha_beta_search(void *state);
-int max_value(void *state, int alpha, int beta);
-int min_value(void *state, int alpha, int beta);
-char actions(void *state);
-int cutoff_test(void *state);
-int evaluation(void *state);
-char result(void *state, char a);
-char get_move(void *state, int v);
+void set_actions_function(void **(*fn)(void *, int *count));
+void set_cutoff_test_function(bool (*fn)(void *));
+void set_evaluation_function(float (*fn)(void *));
+void set_result_function(void *(*fn)(void *, void *action));
+void set_get_move_function(void *(*fn)(void *, float));
 
 #endif /* ALPHABETA_H */
