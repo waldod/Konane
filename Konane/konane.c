@@ -225,39 +225,39 @@ struct state *get_moves (struct state *current, int *count)
 
 	// initial states are  exceptions
 	if ((current->action == NULL) && (player == 'B')) {
-		states = malloc(sizeof(struct state)*2);
+		states = malloc(sizeof(struct state *)*2);
 		if (states == NULL) {
 			fprintf(stderr, "ERROR: Memory allocation failure.\n");
 			exit(1);
 		}
 
-		struct state *state1 = create_state(current, 'D4');
+		struct state *state1 = create_state(current, "D4");
 		update_board(state1);
 		tmpcount++;
-		struct state *state2 = create_state(current, 'E5');
+		struct state *state2 = create_state(current, "E5");
 		update_board(state2);
-	//	*(states + 0) = state1;
-	//	*(states + 1) = state2;
+		states[0] = state1;
+		states[1] = state2;
 
 	} else if (empty == 1) {
 		// we must be white
-		states = malloc(sizeof(struct state)*2);
+		states = malloc(sizeof(struct state *)*2);
 		if (states == NULL) {
 			fprintf(stderr, "ERROR: Memory allocation failure.\n");
 			exit(1);
 		}
 
-		struct state *state1 = create_state(current, 'E4');
+		struct state *state1 = create_state(current, "E4");
 		update_board(state1);
 		tmpcount++;
 		
-		struct state *state2 = create_state(current, 'D5');
+		struct state *state2 = create_state(current, "D5");
 		update_board(state2);
-	//	*(states + 0) = state1;
-	//	*(states + 1) = state2;
+		states[0] = state1;
+		states[1] = state2;
 	}
 
-	return *(states + 0);
+	return states[0]; 
 }
 
 
@@ -372,11 +372,10 @@ void setup_game(int argc, char *argv[]) {
 		}
 		// get rid of new character line at end of line.
 		fgetc(fp);
-		fgetc(fp);
 	}
 	// TODO REMOVE
 
-	int *count = 0;
+	int count = 0;
 	print_board(initial_state);
 	struct state *state;
 	state = malloc(sizeof(struct state));
@@ -387,14 +386,13 @@ void setup_game(int argc, char *argv[]) {
 	while (count == 0) {
 		if (player == turn) {
 			// IMPORTANT New line at end of move?
-			//THIS IS THE PROBLEM HERE
-			state = get_moves(initial_state, count);
+			state = get_moves(initial_state, &count);
 
 			//move = state->action;
 			print_board(state);
 			fprintf(stdout, "%s", state->action);
 			//update_state(move);
-			*count = 1;
+			count = 1;
 		} else {
 			char move[6];
 			fscanf(stdin, "%5s", move);
