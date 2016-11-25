@@ -190,7 +190,6 @@ void update_board(struct state *change)
 				change->board[i+1][j] = 'O';
 			}
 		}
-		new = change->board[q][p];
 		change->board[q][p] = prev;
 	}
 }
