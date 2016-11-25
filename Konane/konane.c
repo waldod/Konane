@@ -376,6 +376,10 @@ struct state **get_moves (struct state *current, int *count)
 		}
 	}
 
+	for (int i = 0; i < count; i++) {
+		print_board(states[i]);
+	}
+
 	return states;
 
 }
