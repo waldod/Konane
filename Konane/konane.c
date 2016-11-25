@@ -157,8 +157,7 @@ void update_board(struct state *change)
 {
 
 	char *move = change->action;
-	char *prev, *new, dash;
-	dash = '-';
+	char *prev, *new;
 
 	// location of initial square
 	int j = translate_letter(move[0]); // letter is column
@@ -251,7 +250,6 @@ char *gen_move(struct state *original, char *open, int row, int col, char *direc
 		} else {
 			indx = row - 2;
 			move = get_space(indx, col);
-				fprintf(stdout, "- 1 %s  - \n", move);
 			move[2] = '-';
 			strcat(move, open);
 		}
@@ -261,7 +259,6 @@ char *gen_move(struct state *original, char *open, int row, int col, char *direc
 		} else {
 			indx = row + 2;
 			move = get_space(indx, col);
-					fprintf(stdout, "-2  %s  - \n", move);
 			move[2] = '-';
 			strcat(move, open);
 		}
@@ -271,7 +268,6 @@ char *gen_move(struct state *original, char *open, int row, int col, char *direc
 		} else {
 			indx = col - 2;
 			move = get_space(row, indx);
-					fprintf(stdout, "- 3 %s  - \n", move);
 			move[2] = '-';
 			strcat(move, open);
 		}
@@ -281,12 +277,10 @@ char *gen_move(struct state *original, char *open, int row, int col, char *direc
 		} else {
 			indx = col + 2;
 			move = get_space(row, indx);
-					fprintf(stdout, "- 4  %s  - \n", move);
 			move[2] = '-';
 			strcat(move, open);
 		}
 	}
-	fprintf(stdout, "!!!  %s  !!!! \n", move);
 	return move;
 }
 
@@ -295,7 +289,7 @@ char *gen_move(struct state *original, char *open, int row, int col, char *direc
  * @current - current state
  * @count - amount of moves
 */
-struct state **get_moves (struct state *current, int *count)
+struct state *get_moves (struct state *current, int *count)
 {
 	//TODO
 
@@ -348,37 +342,28 @@ struct state **get_moves (struct state *current, int *count)
 	if (empty > 1) {
 		states = malloc(sizeof(struct state *)*empty);
 		// allocate space, each empty spot has a possiblity of producing a max of 4 moves
-		int count = 0;
+		int counter = 0;
 		for (int i = 0; i < BOARD_SIZE; i++) {
 			for (int j = 0; j < BOARD_SIZE; j++) {
 				if (current->board[i][j] == 'O') {
 					char *open = get_space(i, j);
-					fprintf (stdout, "%s ---- \n", open);
 					for (int k = 0; k < 4; k++) {
 						char *tomove = gen_move(current, open, i, j, direction[k]);
-						fprintf (stdout, "~~ %s ~~ \n", tomove);
 						if (strcmp(tomove, "invalid") != 0) {
-							if (count > empty) {
-								states = realloc(states, sizeof(struct state *)*count);
+							if (counter > empty) {
+								states = realloc(states, sizeof(struct state *)*counter);
 							}
 							struct state *possible = create_state(current, tomove);
 							update_board(possible);
-							print_board(possible);
-							states[count] = possible;
-							count++;
+							states[counter] = possible;
+							counter++;
 						}
 					}
 				}
 			}
 		}
 	}
-
-	for (int i = 0; i < count; i++) {
-		print_board(states[i]);
-	}
-
-	return states;
-
+	return states[0];
 }
 
 
@@ -503,18 +488,24 @@ void setup_game(int argc, char *argv[]) {
 	state = malloc(sizeof(struct state));
 	state = create_state(initial_state, NULL);
 
-	while (count == 0) {
+	while (count < 4) {
 		if (player == turn) {
 			// IMPORTANT New line at end of move?
-			state = get_moves(initial_state, &count);
+			state = get_moves(state, &count);
 			//move = state->action;
+			fprintf(stdout, "%s \n", state->action);
 			print_board(state);
-			fprintf(stdout, "%s", state->action);
 			//update_state(move);
-			count = 1;
+			turn = 'W';
+			count++;
 		} else {
 			char move[6];
 			fscanf(stdin, "%5s", move);
+			state = create_state(state, move);
+			update_board(state);
+			print_board(state);
+			turn = 'B';
+			count++;
 		//	update_state(move);
 		}
 	}
