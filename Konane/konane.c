@@ -349,7 +349,7 @@ struct state **get_moves (struct state *current, int *count)
 
 
 	if (empty > 1) {
-		states = malloc(sizeof(struct state *)*(empty*4));
+		states = malloc(sizeof(struct state *)*empty);
 		// allocate space, each empty spot has a possiblity of producing a max of 4 moves
 		int count = 0;
 		for (int i = 0; i < BOARD_SIZE; i++) {
@@ -359,9 +359,14 @@ struct state **get_moves (struct state *current, int *count)
 					fprintf (stdout, "%s ---- \n", open);
 					for (int k = 0; k < 4; k++) {
 						char *tomove = gen_move(current, open, i, j, direction[k]);
+						fprintf (stdout, "~~ %s ~~ \n", tomove);
 						if (strcmp(tomove, "invalid") != 0) {
+							if (count > empty) {
+								states = realloc(states, sizeof(struct state *)*count);
+							}
 							struct state *possible = create_state(current, tomove);
 							update_board(possible);
+							print_board(possible);
 							states[count] = possible;
 							count++;
 						}
