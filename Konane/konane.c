@@ -160,8 +160,6 @@ void update_board(struct state *change)
 	char *prev, *new, dash;
 	dash = '-';
 
-	prev = malloc(sizeof(char)*8);
-
 	// location of initial square
 	int j = translate_letter(move[0]); // letter is column
 	int i = 8 - (strtol(&move[1], &new, 10)); // number is row.
