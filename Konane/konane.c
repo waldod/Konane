@@ -286,7 +286,7 @@ char *gen_move(struct state *original, char *open, int row, int col,  const char
 	}
 	return move;
 }
-
+/*
 int from_open(struct state *current, struct state **states, int i, int j, int counter)
 {
 	const char *direction[] = {"up", "down", "left", "right"};
@@ -304,7 +304,7 @@ int from_open(struct state *current, struct state **states, int i, int j, int co
 		}
 	}
 	return counter;
-}
+}*/
 
 
 /**
@@ -354,23 +354,31 @@ struct state *get_moves (struct state *current, int *count)
 		states[0] = state1;
 		states[1] = state2;
 	}
-
+	const char *direction[] = {"up", "down", "left", "right"};
+	int counter = 0;
 	if (empty > 1) {
-		states = malloc(sizeof(struct state *)*empty);
+		states = malloc(sizeof(struct state *)* (empty*4));
 		// allocate space, each empty spot has a possiblity of producing a max of 4 moves
-		int counter = 0;
 		for (int i = 0; i < BOARD_SIZE; i++) {
 			for (int j = 0; j < BOARD_SIZE; j++) {
 				if (current->board[i][j] == 'O') {
-					fprintf(stdout, "EMPTY: %d\nCOUNTER:: %d\n", empty, counter);
-					if (counter > empty) {
-						states = realloc(states, sizeof(struct state *)*counter);
+					char *open = get_space(i, j);
+					for (int k = 0; k < 4; k++) {
+						char *tomove = gen_move(current, open, i, j, direction[k]);
+						if (strcmp(tomove, "invalid") != 0) {
+							if (counter > (empty*4)) {
+								states = realloc(states, sizeof(struct state *)*counter);
+							}
+							struct state *possible = create_state(current, tomove);
+							update_board(possible);
+							print_board(possible);
+							states[counter] = possible;
+							counter++;
+						}
 					}
-					counter = from_open(current, states, i, j, counter);
 				}
 			}
 		}
-			fprintf(stdout, "%d \n", counter);
 	}
 	print_board(states[0]);
 	return states[0];
