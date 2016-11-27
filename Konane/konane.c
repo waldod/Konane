@@ -240,7 +240,6 @@ char *gen_move(struct state *original, char *open, int row, int col,  const char
 	char *move;
 	int indx;
 	move = calloc(20, sizeof(char));
-	fprintf(stdout, "OPEN::  %s \n", open);
 	if (strcmp(direction, "up") == 0) {
 		if ((original->board[row-1][col] == 'O') || (original->board[row-1][col] == player)) {
 			/* if the piece beside the open spot is the player
@@ -288,20 +287,20 @@ char *gen_move(struct state *original, char *open, int row, int col,  const char
 	return move;
 }
 
-int from_open(struct state *current, struct state **states, int i, int j, int counter, int empty)
+int from_open(struct state *current, struct state **states, int i, int j, int counter)
 {
 	const char *direction[] = {"up", "down", "left", "right"};
 	char *open = get_space(i, j);
 	for (int k = 0; k < 4; k++) {
 		char *tomove = gen_move(current, open, i, j, direction[k]);
 		if (strcmp(tomove, "invalid") != 0) {
-			if (counter > empty) {
-				states = realloc(states, sizeof(struct state *)*counter);
-			}
 			struct state *possible = create_state(current, tomove);
 			update_board(possible);
+			print_board(possible);
 			states[counter] = possible;
-			counter++;
+			counter = counter + 1;
+			fprintf(stdout, "In Helper FUNCTION: %d\n", counter);
+			return counter;
 		}
 	}
 	return counter;
@@ -363,7 +362,11 @@ struct state *get_moves (struct state *current, int *count)
 		for (int i = 0; i < BOARD_SIZE; i++) {
 			for (int j = 0; j < BOARD_SIZE; j++) {
 				if (current->board[i][j] == 'O') {
-					counter = from_open(current, states, i, j, counter, empty);
+					fprintf(stdout, "EMPTY: %d\nCOUNTER:: %d\n", empty, counter);
+					if (counter > empty) {
+						states = realloc(states, sizeof(struct state *)*counter);
+					}
+					counter = from_open(current, states, i, j, counter);
 				}
 			}
 		}
