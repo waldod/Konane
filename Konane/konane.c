@@ -220,7 +220,7 @@ char *get_space(int row, int col)
 {
 	char *move;
 
-	move = calloc(20, sizeof(char));
+	move = calloc(14, sizeof(char));
 
 	move[0] = translate_number(col);
 	//if (move[0] == 'Z') {
@@ -239,50 +239,59 @@ char *gen_move(struct state *original, char *open, int row, int col,  const char
 	// check which color is above/below/right/left of it
 	char *move;
 	int indx;
-	move = calloc(20, sizeof(char));
-	if (strcmp(direction, "up") == 0) {
+	move = calloc(14, sizeof(char));
+	if ((strcmp(direction, "up") == 0) && (row != 0)) {
 		if ((original->board[row-1][col] == 'O') || (original->board[row-1][col] == player)) {
 			/* if the piece beside the open spot is the player
 			 * then the player cannot move into the open spot
 			*/
 			return move = "invalid";
-		} else {
+		} else if (original->board[row-2][col] == player) {
 			indx = row - 2;
 			move = get_space(indx, col);
 			move[2] = '-';
 			move[3] = '\0';
 			strncat(move, open, 3);
 		}
-	} else if (strcmp(direction, "down") == 0) {
+	} else if ((strcmp(direction, "down") == 0) && (row != 7)) {
 		if ((original->board[row+1][col] == 'O') || (original->board[row+1][col] == player)) {
 			return move = "invalid";
-		} else {
+		} else if (original->board[row+2][col] == player) {
 			indx = row + 2;
 			move = get_space(indx, col);
 			move[2] = '-';
 			move[3] = '\0';
 			strncat(move, open, 2);
 		}
-	} else if (strcmp(direction, "left") == 0) {
+	} else if ((strcmp(direction, "left") == 0) && (col != 0)) {
 		if ((original->board[row][col-1] == 'O') || (original->board[row][col-1] == player)) {
 			return move = "invalid";
-		} else {
+		} else if (original->board[row][col-2] == player) {
 			indx = col - 2;
 			move = get_space(row, indx);
 			move[2] = '-';
 			move[3] = '\0';
 			strncat(move, open, 2);
 		}
-	} else if (strcmp(direction, "right") == 0) {
+	} else if ((strcmp(direction, "right") == 0) && (col != 7)) {
 		if ((original->board[row][col+1] == 'O') || (original->board[row][col+1] == player)) {
 			return move = "invalid";
-		} else {
+		} else if (original->board[row][col+2] == player) {
 			indx = col + 2;
 			move = get_space(row, indx);
 			move[2] = '-';
 			move[3] = '\0';
 			strncat(move, open, 2);
 		}
+	}
+	if (!isdigit(move[1])) {
+		move = "invalid";
+	}
+	if (move[0] == 'Z') {
+		move = "invalid";
+	}
+	if (move[1] == '0') {
+		move = "invalid";
 	}
 	return move;
 }
@@ -371,7 +380,6 @@ struct state *get_moves (struct state *current, int *count)
 							}
 							struct state *possible = create_state(current, tomove);
 							update_board(possible);
-							print_board(possible);
 							states[counter] = possible;
 							counter++;
 						}
@@ -380,7 +388,6 @@ struct state *get_moves (struct state *current, int *count)
 			}
 		}
 	}
-	print_board(states[0]);
 	return states[0];
 }
 
