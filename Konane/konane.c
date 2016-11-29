@@ -364,7 +364,6 @@ struct state **get_moves (struct state *current, int *count)
 }
 
 
-
 static void free_board_state(struct state *state)
 {
 	free(state);
@@ -386,11 +385,13 @@ static char *decide_move()
     int max_evaluated = 0;
     struct tree_node *take = NULL;
 
-    time_t start_time = time(NULL);
+    time_t stop_time = time(NULL) + TIME_IN_SECONDS;
 
-    while (time(NULL) - start_time < TIME_IN_SECONDS) {
+    while (time(NULL) < stop_time) {
         if (max_depth-1 > max_evaluated) {
-            take = alpha_beta_search(tree_root, ++max_evaluated);
+            struct tree_node *ret = alpha_beta_search(tree_root, ++max_evaluated, stop_time);
+            if (ret != NULL)
+                take = ret;
         }
     }
 
