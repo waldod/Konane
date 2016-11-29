@@ -44,7 +44,7 @@ void recursive_free_tree(struct tree_node *root, void (*free_value)(void *), str
 		return;
 
 	if (free_value != NULL)
-		free_value(root);	
+		free_value(root->value);	
 
 	for (int i=0; i<root->child_count; i++) {
 		recursive_free_tree(root->children[i], free_value, except);	
