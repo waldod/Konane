@@ -37,10 +37,11 @@ struct state {
 };
 
 static struct tree_node *tree_root;
-static bool tree_change = false; // Tree has been changed and thus tree creation should be updated 
+static bool tree_change = false; // Tree has been changed and thus tree creation should be updated
 static bool is_running = true;
 static char our_player;
 static int max_depth = 0;
+int check_moves(struct state *current);
 
 /**
  * print_board() - prints a board
@@ -94,7 +95,7 @@ static struct state *create_state(struct state *parent, char *action)
 		memcpy(state->board, parent->board, size_of_board);
         state->player = switch_player(parent->player);
 	} else {
-        state->player = 'B'; 
+        state->player = 'B';
     }
 
 	state->action = action;
@@ -182,14 +183,17 @@ static void update_state(char *move)
 			tree_change = true;
             max_depth = max_depth - tree_root->depth;
             print_board((struct state *) tree_root->value);
+	//		if (check_moves((struct state *) tree_root->value) == 0) {
+	//			is_running = false;
+			}
 			return;
 		}
 	}
 
-    // Have not found move.  
+    // Have not found move.
     struct state *state = create_state(tree_root->value, move);
     update_board(state);
-    tree_root = init_tree(state); 
+    tree_root = init_tree(state);
     max_depth = 0;
 	tree_change = true;
 
@@ -364,13 +368,25 @@ struct state **get_moves (struct state *current, int *count)
 }
 
 
+int check_moves(struct state *current) {
+
+	int *count;
+
+	get_moves(current, count);
+	if (count == 0) {
+		return 0;
+	} else {
+		return 1;
+	}
+}
+
 static void free_board_state(struct state *state)
 {
 	free(state);
 }
 
 //---------------------------------------------------------
-// Alphabeta stuff 
+// Alphabeta stuff
 //---------------------------------------------------------
 
 float eval_fn(struct tree_node *cur_node)
@@ -396,9 +412,9 @@ static char *decide_move()
     }
 
     if (take == NULL) {
-        fprintf(stderr, "ERROR: failed to decide a move.\n");    
+        fprintf(stderr, "ERROR: failed to decide a move.\n");
         exit(1);
-    } 
+    }
 
     struct state *state = take->value;
 	return state->action;
@@ -459,7 +475,7 @@ static void *make_tree()
                 exit(1);
             }
             if (pthread_create(&free_thread, NULL, thread_free_tree, args) != 0)
-                fprintf(stderr, "ERROR: Failed to create a thread.\n"); 
+                fprintf(stderr, "ERROR: Failed to create a thread.\n");
 		}
 		tree_change = false;
 	}
