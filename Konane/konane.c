@@ -19,24 +19,28 @@
 #include <ctype.h>
 
 #include "tree.h"
+#include "alphabeta.h"
+
+// Time to make a move
+#define TIME_IN_SECONDS 10
 
 #define BOARD_SIZE 8
+
 
 // Board state struct (a struct rather than 2d array to make it easier to
 // pass around to different functions.
 struct state {
 	char board[BOARD_SIZE][BOARD_SIZE];
 	char *action; // action to get to this move (use in get_moves())
+    char player;
 	int eval_value;
 };
 
-//static struct tree_node *tree_root;
-static char player;
-static char turn = 'B';
-
-static bool tree_change = false; // Tree has been changed and thus tree creation plugin should change.
-
+static struct tree_node *tree_root;
+static bool tree_change = false; // Tree has been changed and thus tree creation should be updated 
 static bool is_running = true;
+static char our_player;
+static int max_depth = 0;
 
 /**
  * print_board() - prints a board
@@ -54,6 +58,10 @@ static void print_board(struct state *state) {
 	fprintf(stdout, "\n");
 }
 
+static char switch_player(char player)
+{
+    return player == 'B' ? 'W' : 'B';
+}
 
 /**
  * print_usage() - prints usage of application
@@ -64,26 +72,6 @@ void print_usage(char *exec_name)
 	fprintf(stdout, "file - filename of board\n");
 }
 
-/**
- * update_state() - apply a move
- * @move - move to make
-
-static void update_state(char *move)
-{
-	int child_count = 0;
-	struct tree_node **children_of_root = get_tree_children(tree_root, &child_count);
-	for (int i = 0; i < child_count; i++) {
-		struct state *state = children_of_root[i]->value;
-		if (strcmp(state->action, move) == 0) {
-			tree_root = children_of_root[i];
-			tree_change = true;
-			return;
-		}
-	}
-	fprintf(stderr, "ERROR: Failed to find new state in tree after move.\n");
-	exit(1);
-}
-*/
 /**
  * create_state() - creates a new board state object
  * @parent - parent to inherit board state from
@@ -104,7 +92,10 @@ static struct state *create_state(struct state *parent, char *action)
 
 	if (parent != NULL) {
 		memcpy(state->board, parent->board, size_of_board);
-	}
+        state->player = switch_player(parent->player);
+	} else {
+        state->player = 'B'; 
+    }
 
 	state->action = action;
 
@@ -132,42 +123,21 @@ int count_o (struct state *current)
 
 int translate_letter(char letter)
 {
-	switch (letter){
-		case 'A':
-			return 0;
-		case 'B':
-			return 1;
-		case 'C':
-			return 2;
-		case 'D':
-			return 3;
-		case 'E':
-			return 4;
-		case 'F':
-			return 5;
-		case 'G':
-			return 6;
-		case 'H':
-			return 7;
-		}
-	return 0; // if letter not possible
+    return letter - 'A';
 }
 
 void update_board(struct state *change)
 {
 
 	char *move = change->action;
-	char *prev, *new, dash;
-	dash = '-';
-
-	prev = malloc(sizeof(char)*8);
+	char prev, *new;
 
 	// location of initial square
 	int j = translate_letter(move[0]); // letter is column
 	int i = 8 - (strtol(&move[1], &new, 10)); // number is row.
 
 	// adjust board
-	prev = change->board[i][j];
+	prev = (change->board[i][j]);
 	change->board[i][j] = 'O';
 
 	if (move[2] == '-') {
@@ -192,39 +162,49 @@ void update_board(struct state *change)
 				change->board[i+1][j] = 'O';
 			}
 		}
-		new = change->board[q][p];
 		change->board[q][p] = prev;
 	}
 }
 
-char translate_number(int num)
+/**
+ * update_state() - apply a move
+ * @move - move to make
+ */
+static void update_state(char *move)
 {
-	switch (num){
-		case 0:
-			return 'A';
-		case 1:
-			return 'B';
-		case 2:
-			return 'C';
-		case 3:
-			return 'D';
-		case 4:
-			return 'E';
-		case 5:
-			return 'F';
-		case 6:
-			return 'G';
-		case 7:
-			return 'H';
+	int child_count = 0;
+	struct tree_node **children_of_root = get_tree_children(tree_root, &child_count);
+	for (int i = 0; i < child_count; i++) {
+		struct state *state = children_of_root[i]->value;
+		if (strcmp(state->action, move) == 0) {
+			tree_root = children_of_root[i];
+			tree_change = true;
+            max_depth = max_depth - tree_root->depth;
+            print_board((struct state *) tree_root->value);
+			return;
 		}
-	return 'Z'; // if switch doesn't work
+	}
+
+    // Have not found move.  
+    struct state *state = create_state(tree_root->value, move);
+    update_board(state);
+    tree_root = init_tree(state); 
+    max_depth = 0;
+	tree_change = true;
+
+    print_board((struct state *) tree_root->value);
 }
 
-char * get_space(int row, int col)
+char translate_number(int num)
+{
+    return 'A' + num;
+}
+
+char *get_space(int row, int col)
 {
 	char *move;
 
-	move = malloc(sizeof(char)*8);
+	move = calloc(14, sizeof(char));
 
 	move[0] = translate_number(col);
 	//if (move[0] == 'Z') {
@@ -234,62 +214,71 @@ char * get_space(int row, int col)
 	move[1] = (char)(i + '0');
 	return move;
 }
-	/* get the move that can be performed given the current board and empty space
-	 * return as string LetterNumber-LetterNumber
-	  * which is the move
-	 */
-char *gen_move(struct state *original, char *open, int row, int col, char *direction)
+
+/* get the move that can be performed given the current board and empty space
+ * return as string LetterNumber-LetterNumber
+ * which is the move
+ */
+char *gen_move(struct state *original, char *open, int row, int col,  const char *direction)
 {
 	// check which color is above/below/right/left of it
+    char player = switch_player(original->player);
 	char *move;
 	int indx;
-	move = malloc(sizeof(char)*18);
-
-	if (strcmp(direction, "up") == 0) {
+	move = calloc(14, sizeof(char));
+	if ((strcmp(direction, "up") == 0) && (row != 0)) {
 		if ((original->board[row-1][col] == 'O') || (original->board[row-1][col] == player)) {
 			/* if the piece beside the open spot is the player
 			 * then the player cannot move into the open spot
 			*/
 			return move = "invalid";
-		} else {
+		} else if (original->board[row-2][col] == player) {
 			indx = row - 2;
 			move = get_space(indx, col);
-				fprintf(stdout, "- 1 %s  - \n", move);
 			move[2] = '-';
-			strcat(move, open);
+			move[3] = '\0';
+			strncat(move, open, 3);
 		}
-	} else if (strcmp(direction, "down") == 0) {
+	} else if ((strcmp(direction, "down") == 0) && (row != 7)) {
 		if ((original->board[row+1][col] == 'O') || (original->board[row+1][col] == player)) {
 			return move = "invalid";
-		} else {
+		} else if (original->board[row+2][col] == player) {
 			indx = row + 2;
 			move = get_space(indx, col);
-					fprintf(stdout, "-2  %s  - \n", move);
 			move[2] = '-';
-			strcat(move, open);
+			move[3] = '\0';
+			strncat(move, open, 2);
 		}
-	} else if (strcmp(direction, "left") == 0) {
+	} else if ((strcmp(direction, "left") == 0) && (col != 0)) {
 		if ((original->board[row][col-1] == 'O') || (original->board[row][col-1] == player)) {
 			return move = "invalid";
-		} else {
+		} else if (original->board[row][col-2] == player) {
 			indx = col - 2;
 			move = get_space(row, indx);
-					fprintf(stdout, "- 3 %s  - \n", move);
 			move[2] = '-';
-			strcat(move, open);
+			move[3] = '\0';
+			strncat(move, open, 2);
 		}
-	} else if (strcmp(direction, "right") == 0) {
+	} else if ((strcmp(direction, "right") == 0) && (col != 7)) {
 		if ((original->board[row][col+1] == 'O') || (original->board[row][col+1] == player)) {
 			return move = "invalid";
-		} else {
+		} else if (original->board[row][col+2] == player) {
 			indx = col + 2;
 			move = get_space(row, indx);
-					fprintf(stdout, "- 4  %s  - \n", move);
 			move[2] = '-';
-			strcat(move, open);
+			move[3] = '\0';
+			strncat(move, open, 2);
 		}
 	}
-	fprintf(stdout, "!!!  %s  !!!! \n", move);
+	if (!isdigit(move[1])) {
+		move = "invalid";
+	}
+	if (move[0] == 'Z') {
+		move = "invalid";
+	}
+	if (move[1] == '0') {
+		move = "invalid";
+	}
 	return move;
 }
 
@@ -300,7 +289,7 @@ char *gen_move(struct state *original, char *open, int row, int col, char *direc
 */
 struct state **get_moves (struct state *current, int *count)
 {
-	//TODO
+    char player = switch_player(current->player);
 
 	struct state **states;
 	int tmpcount = 0;
@@ -318,7 +307,6 @@ struct state **get_moves (struct state *current, int *count)
 			fprintf(stderr, "ERROR: Memory allocation failure.\n");
 			exit(1);
 		}
-
 		struct state *state1 = create_state(current, "E4");
 		update_board(state1);
 		tmpcount++;
@@ -326,7 +314,8 @@ struct state **get_moves (struct state *current, int *count)
 		update_board(state2);
 		states[0] = state1;
 		states[1] = state2;
-
+        *count = 2;
+        return states;
 	} else if (empty == 1) {
 		// we must be white
 		states = malloc(sizeof(struct state *)*2);
@@ -334,56 +323,44 @@ struct state **get_moves (struct state *current, int *count)
 			fprintf(stderr, "ERROR: Memory allocation failure.\n");
 			exit(1);
 		}
-
 		struct state *state1 = create_state(current, "D4");
 		update_board(state1);
 		tmpcount++;
-
 		struct state *state2 = create_state(current, "E5");
 		update_board(state2);
 		states[0] = state1;
 		states[1] = state2;
+        *count = 2;
+        return states;
 	}
-
 	const char *direction[] = {"up", "down", "left", "right"};
-
-
+	int counter = 0;
 	if (empty > 1) {
-		states = malloc(sizeof(struct state *)*empty);
+		states = malloc(sizeof(struct state *)* (empty*4));
 		// allocate space, each empty spot has a possiblity of producing a max of 4 moves
-		int count = 0;
 		for (int i = 0; i < BOARD_SIZE; i++) {
 			for (int j = 0; j < BOARD_SIZE; j++) {
 				if (current->board[i][j] == 'O') {
 					char *open = get_space(i, j);
-					fprintf (stdout, "%s ---- \n", open);
 					for (int k = 0; k < 4; k++) {
 						char *tomove = gen_move(current, open, i, j, direction[k]);
-						fprintf (stdout, "~~ %s ~~ \n", tomove);
 						if (strcmp(tomove, "invalid") != 0) {
-							if (count > empty) {
-								states = realloc(states, sizeof(struct state *)*count);
+							if (counter > (empty*4)) {
+								states = realloc(states, sizeof(struct state *)*counter);
 							}
 							struct state *possible = create_state(current, tomove);
 							update_board(possible);
-							print_board(possible);
-							states[count] = possible;
-							count++;
+							states[counter] = possible;
+							counter++;
 						}
 					}
 				}
 			}
 		}
 	}
-
-	for (int i = 0; i < count; i++) {
-		print_board(states[i]);
-	}
-
+    *count = counter;
 	return states;
-
 }
-
 
 
 static void free_board_state(struct state *state)
@@ -391,14 +368,40 @@ static void free_board_state(struct state *state)
 	free(state);
 }
 
+//---------------------------------------------------------
+// Alphabeta stuff 
+//---------------------------------------------------------
+
+float eval_fn(struct tree_node *cur_node)
+{
+    struct state *state = cur_node->value;
+    return (float) state->eval_value;
+}
+
 static char *decide_move()
 {
-	// TODO
-	char *move;
-	move = "cat";
+    int max_evaluated = 0;
+    struct tree_node *take = NULL;
 
-	return move;
+    time_t stop_time = time(NULL) + TIME_IN_SECONDS;
+
+    while (time(NULL) < stop_time) {
+        if (max_depth-1 > max_evaluated) {
+            struct tree_node *ret = alpha_beta_search(tree_root, ++max_evaluated, stop_time);
+            if (ret != NULL)
+                take = ret;
+        }
+    }
+
+    if (take == NULL) {
+        fprintf(stderr, "ERROR: failed to decide a move.\n");    
+        exit(1);
+    } 
+
+    struct state *state = take->value;
+	return state->action;
 }
+
 //---------------------------------------------------------
 // State tree creation thread
 //---------------------------------------------------------
@@ -415,26 +418,51 @@ static void _tree_node_eval(struct tree_node *node)
 
 	if (node->child_count == 0) {
 		int count = 0;
-		struct state *states = get_moves(node->value, &count);
+        struct state *state = node->value;
+		struct state **states = get_moves(state, &count);
+        state->eval_value = count;
 		for (int i = 0; i < count; i++) {
-		//	add_tree_child(node, states[i]);
+			struct tree_node *new_node = add_tree_child(node, states[i]);
+            max_depth = new_node->depth - tree_root->depth;
 		}
 	}
 }
-/*
+
+struct free_tree_args {
+    struct tree_node *root;
+    struct tree_node *ignore;
+};
+
+static void *thread_free_tree(void *arg)
+{
+    struct free_tree_args *args = arg;
+	recursive_free_tree(args->root, _free_board_state, args->ignore);
+    free(args);
+    pthread_exit(NULL);
+}
+
+
 static void *make_tree()
 {
-	// TODO: Exit this thread cleanly.
 	while (is_running) {
 		struct tree_node *current = tree_root;
 		breadth_traverse(current, -1, _tree_node_eval);
 		if (current != tree_root) {
-			recursive_free_tree(current, _free_board_state, tree_root);
+            pthread_t free_thread;
+            struct free_tree_args *args = malloc(sizeof(struct free_tree_args));
+            args->root = current;
+            args->ignore = tree_root;
+            if (args == NULL) {
+                fprintf(stderr, "ERROR: Memory allocation failure!\n");
+                exit(1);
+            }
+            if (pthread_create(&free_thread, NULL, thread_free_tree, args) != 0)
+                fprintf(stderr, "ERROR: Failed to create a thread.\n"); 
 		}
-		tree_change = true;
+		tree_change = false;
 	}
 	pthread_exit(NULL);
-}*/
+}
 
 //---------------------------------------------------------
 
@@ -445,15 +473,18 @@ static void *make_tree()
 static void *game_handler()
 {
 	while (is_running) {
-		if (player == turn) {
-			// IMPORTANT New line at end of move?
+        struct state *state = tree_root->value;
+		if (switch_player(state->player) == our_player) {
 			char *move = decide_move();
-			fprintf(stdout, "%s", move);
-			//update_state(move);
+			fprintf(stdout, "%s\n", move);
+			update_state(move);
 		} else {
 			char move[6];
 			fscanf(stdin, "%5s", move);
-			//update_state(move);
+                        for (int i=0; i<6;i++)
+                            move[i] = toupper(move[i]);
+                        
+			update_state(move);
 		}
 	}
 	pthread_exit(NULL);
@@ -485,7 +516,7 @@ void setup_game(int argc, char *argv[]) {
 		exit(1);
 	}
 
-	player = *argv[2];
+	our_player = *argv[2];
 
 	struct state *initial_state = create_state(NULL, NULL);
 
@@ -497,46 +528,24 @@ void setup_game(int argc, char *argv[]) {
 		// get rid of new character line at end of line.
 		fgetc(fp);
 	}
-	// TODO REMOVE
 
-	int count = 0;
-	print_board(initial_state);
-
-	struct state *state;
-	state = malloc(sizeof(struct state));
-	state = create_state(initial_state, NULL);
-
-	while (count == 0) {
-		if (player == turn) {
-			// IMPORTANT New line at end of move?
-			state = get_moves(initial_state, &count);
-			//move = state->action;
-			print_board(state);
-			fprintf(stdout, "%s", state->action);
-			//update_state(move);
-			count = 1;
-		} else {
-			char move[6];
-			fscanf(stdin, "%5s", move);
-		//	update_state(move);
-		}
-	}
-
-//	tree_root = init_tree(initial_state);
+    initial_state->player = 'W';
+    tree_root = init_tree(initial_state);
 }
 
 int main(int argc, char* argv[]) {
 	setup_game(argc, argv);
+        set_eval_function(eval_fn);
 
-//	pthread_t handler;
-	//pthread_t tree_creation;
-/*
+	pthread_t handler;
+	pthread_t tree_creation;
+
 	if (pthread_create(&handler, NULL, game_handler, NULL) != 0)
 		fprintf(stderr, "ERROR: Failed to create game handler thread.\n");
 	if (pthread_create(&tree_creation, NULL, make_tree, NULL) != 0)
 		fprintf(stderr, "ERROR: Failed to create game handler thread.\n");
-*/
-//	pthread_exit(NULL);
+
+	pthread_exit(NULL);
 
 	return 0;
 }
