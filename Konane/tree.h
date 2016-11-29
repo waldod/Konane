@@ -23,6 +23,7 @@ struct tree_node {
 	int depth;
 	pthread_mutex_t lock;
 	void *value;
+    float temp_val;
 };
 
 /**
