@@ -429,13 +429,36 @@ static void _tree_node_eval(struct tree_node *node)
 	}
 }
 
+struct free_tree_args {
+    struct tree_node *root;
+    struct tree_node *ignore;
+};
+
+static void *thread_free_tree(void *arg)
+{
+    struct free_tree_args *args = arg;
+	recursive_free_tree(args->root, _free_board_state, args->ignore);
+    free(args);
+    pthread_exit(NULL);
+}
+
+
 static void *make_tree()
 {
 	while (is_running) {
 		struct tree_node *current = tree_root;
 		breadth_traverse(current, -1, _tree_node_eval);
 		if (current != tree_root) {
-			recursive_free_tree(current, _free_board_state, tree_root);
+            pthread_t free_thread;
+            struct free_tree_args *args = malloc(sizeof(struct free_tree_args));
+            args->root = current;
+            args->ignore = tree_root;
+            if (args == NULL) {
+                fprintf(stderr, "ERROR: Memory allocation failure!\n");
+                exit(1);
+            }
+            if (pthread_create(&free_thread, NULL, thread_free_tree, args) != 0)
+                fprintf(stderr, "ERROR: Failed to create a thread.\n"); 
 		}
 		tree_change = true;
 	}
