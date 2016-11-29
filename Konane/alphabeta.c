@@ -1,76 +1,93 @@
 #include <math.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
+#include "tree.h"
 #include "alphabeta.h"
 
-static void **(*get_actions)(void *, int *count);
-static bool (*cutoff_test)(void *);
-static float (*evaluation)(void *);
-static void *(*result)(void *, void *action);
-static void *(*get_move)(void *, float);
+static float (*eval)(struct tree_node *);
 
-void set_actions_function(void **(*fn)(void *, int *count))
+static int starting_depth;
+
+void set_eval_function(float (*fn)(struct tree_node *))
 {
-	get_actions = fn;
+    eval = fn;
 }
 
-void set_cutoff_test_function(bool (*fn)(void *))
+static bool cutoff_test(struct tree_node *node, int max_depth)
 {
-	cutoff_test = fn;
+   return (node->depth - starting_depth) >= max_depth || node->child_count == 0;  
 }
 
-void set_evaluation_function(float (*fn)(void *))
+static struct tree_node *get_move(struct tree_node *root, float v)
 {
-	evaluation = fn;
+    int count = 0;
+    struct tree_node **children = get_tree_children(root, &count);
+    struct tree_node *ret = NULL;
+    
+    for (int i=0; i<count; i++) {
+        if (children[i]->temp_val == v) {
+            ret = children[i];
+            break;
+        }
+            
+    }
+
+    if (ret == NULL) {
+        fprintf(stderr, "ERROR: Alphabeta failed to decide a move.\n"); 
+        exit(1);
+    }
+
+    free(children);
+    return ret;
 }
 
-void set_result_function(void *(*fn)(void *, void *action))
-{
-	result = fn;
-}
-
-void set_get_move_function(void *(*fn)(void *, float))
-{
-	get_move = fn;
-}
-
-
-void *alpha_beta_search(void *state){
+struct tree_node *alpha_beta_search(struct tree_node *state, int max_depth){
 	float v;
-	v = max_value(state, -INFINITY, INFINITY);
+    starting_depth = state->depth;
+	v = max_value(state, -INFINITY, INFINITY, max_depth);
 	return get_move(state, v);
 }
 
-float max_value(void *state, float alpha, float beta){
+float max_value(struct tree_node *state, float alpha, float beta, int max_depth){
 	float v;
-	if (cutoff_test(state))
-		return evaluation(state);
-	v = -INFINITY;
+	if (cutoff_test(state, max_depth))
+        v = eval(state);
+    else {
+        v = -INFINITY;
 
-	int count = 0;
-	void **actions = get_actions(state, &count);
-	for (int i=0; i<count; i++) {
-		v = fmax(v, min_value(result(state,actions[i]), alpha, beta));
-		if (v>=beta)
-			return v;
-		alpha = fmax(alpha,v);
-	}
+        int count = 0;
+        struct tree_node **children = get_tree_children(state, &count);
+        for (int i=0; i<count; i++) {
+            v = fmax(v, min_value(children[i], alpha, beta, max_depth));
+            if (v>=beta)
+                return v;
+            alpha = fmax(alpha,v);
+        }
+        free(children);
+    }
+    state->temp_val = v;
 	return v;
 }
 
-float min_value(void *state, float alpha, float beta){
+float min_value(struct tree_node *state, float alpha, float beta, int max_depth){
 	float v;
-	if (cutoff_test(state))
-		return evaluation(state);
-	v = INFINITY;
-	int count=0;
-	void **actions = get_actions(state, &count);
-	for (int i=0; i<count; i++) {
-		v = fmin(v, max_value(result(state,actions[i]), alpha, beta));
-		if (v<=alpha)
-			return v;
-		beta = fmin(beta,v);
-	}
+	if (cutoff_test(state, max_depth))
+        v = eval(state);
+    else {
+        v = INFINITY;
+        int count=0;
+        struct tree_node **children = get_tree_children(state, &count);
+        for (int i=0; i<count; i++) {
+            v = fmin(v, max_value(children[i], alpha, beta, max_depth));
+            if (v<=alpha)
+                return v;
+            beta = fmin(beta,v);
+        }
+        free(children);
+    }
+    state->temp_val = v;
 	return v;
 }
