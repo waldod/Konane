@@ -460,7 +460,7 @@ static void *make_tree()
             if (pthread_create(&free_thread, NULL, thread_free_tree, args) != 0)
                 fprintf(stderr, "ERROR: Failed to create a thread.\n"); 
 		}
-		tree_change = true;
+		tree_change = false;
 	}
 	pthread_exit(NULL);
 }
