@@ -558,15 +558,13 @@ static void *game_handler()
             break;
         if (switch_player(state->player) == our_player) {
             char *move = decide_move();
-            fprintf(stdout, "%s\n", move);
-			print_board(state);
+            fprintf(stdout, "%s", move);
             update_state(move);
 
         } else {
             char move[6];
             fgets(move, 6, stdin);
             update_state(move);
-			print_board(state);
         }
     }
     pthread_exit(NULL);
