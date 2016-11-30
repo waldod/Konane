@@ -47,7 +47,9 @@ static int max_depth = 0;
  * @state - state to print
  */
 static void print_board(struct state *state) {
+    fprintf(stdout, " ABCDEFGH\n");
     for (int i = 0; i < BOARD_SIZE; i++) {
+        fprintf(stdout, "%d", 8-i);
         for (int j = 0; j < BOARD_SIZE; j++) {
             // don't check if null character because board should be right */
             fprintf(stdout, "%c", state->board[i][j]);
@@ -468,8 +470,20 @@ static char *decide_move()
     }
 
     if (take == NULL) {
-        fprintf(stderr, "ERROR: failed to decide a move.\n");
-        exit(1);
+        // Make a random move
+        int count = 0;
+        struct state *current = tree_root->value;
+        struct state **states = get_moves(current, &count, switch_player(current->player));
+
+        if (count == 0) {
+            fprintf(stderr, "ERROR: failed to decide a move.  Perhaps game over has not been identified.\n");
+            exit(1);
+        } else {
+            fprintf(stderr, "WARNING: Ran out of time to make move.. picking random move.\n");
+            struct state *random  = states[0];
+            free(states);
+            return random->action;
+        }
     }
 
     struct state *state = take->value;
@@ -558,14 +572,15 @@ static void *game_handler()
             break;
         if (switch_player(state->player) == our_player) {
             char *move = decide_move();
-            fprintf(stdout, "%s", move);
+            fprintf(stdout, "%s\n", move);
             update_state(move);
 
         } else {
-            char move[6];
-            fgets(move, 6, stdin);
+            char move[8];
+            fgets(move, 8, stdin);
             update_state(move);
         }
+        /* print_board(tree_root->value); */
     }
     pthread_exit(NULL);
 }
@@ -609,7 +624,8 @@ void setup_game(int argc, char *argv[]) {
         fgetc(fp);
     }
 
-    initial_state->player = 'W';
+    initial_state->player = switch_player(our_player);
+
     tree_root = init_tree(initial_state);
 }
 
