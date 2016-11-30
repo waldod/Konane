@@ -511,7 +511,7 @@ static void *game_handler()
 
         } else {
             char move[6];
-            fscanf(stdin, "%5s", move);
+            fgets(move, 6, stdin);
             update_state(move);
         }
     }
