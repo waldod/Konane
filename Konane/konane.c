@@ -152,15 +152,27 @@ void update_board(struct state *change)
         if ( i == q) {
             if (j > p) {
                 change->board[i][j-1] = 'O';
+				if ((j - p) > 2) {
+					change->board[i][j-3] = 'O';
+				}
             } else if (j < p) {
                 change->board[i][j+1] = 'O';
+				if ((p - j) > 2) {
+					change->board[i][j+3] = 'O';
+				}
             }
         }
         if ( j == p) {
             if (i > q) {
                 change->board[i-1][j] = 'O';
+				if ((i - q) > 2) {
+					change->board[i-3][j] = 'O';
+				}
             } else if (i < q) {
                 change->board[i+1][j] = 'O';
+				if ((q - i) > 2) {
+					change->board[i+3][j] = 'O';
+				}
             }
         }
         change->board[q][p] = prev;
@@ -237,7 +249,17 @@ char *gen_move(struct state *original, char *open, int row, int col,  const char
             move[2] = '-';
             move[3] = '\0';
             strncat(move, open, 3);
-        }
+        } else if ((row != 1) && (original->board[row-2][col] == 'O')) {
+			if ((row != 3) && (original->board[row-3][col] == switch_player(player))) {
+				if (original->board[row-4][col] == player) {
+					indx = row - 4;
+					move = get_space(indx, col);
+					move[2] = '-';
+					move[3] = '\0';
+					strncat(move, open, 3);
+				}
+			}
+		}
     } else if ((strcmp(direction, "down") == 0) && (row != 7)) {
         if ((original->board[row+1][col] == 'O') || (original->board[row+1][col] == player)) {
             free(move);
@@ -248,7 +270,17 @@ char *gen_move(struct state *original, char *open, int row, int col,  const char
             move[2] = '-';
             move[3] = '\0';
             strncat(move, open, 2);
-        }
+        } else if ((row != 6) && (original->board[row+2][col] == 'O')) {
+			if ((row != 4) && (original->board[row+3][col] == switch_player(player))) {
+				if (original->board[row+4][col] == player) {
+					indx = row + 4;
+					move = get_space(indx, col);
+					move[2] = '-';
+					move[3] = '\0';
+					strncat(move, open, 3);
+				}
+			}
+		}
     } else if ((strcmp(direction, "left") == 0) && (col != 0)) {
         if ((original->board[row][col-1] == 'O') || (original->board[row][col-1] == player)) {
             free(move);
@@ -259,7 +291,17 @@ char *gen_move(struct state *original, char *open, int row, int col,  const char
             move[2] = '-';
             move[3] = '\0';
             strncat(move, open, 2);
-        }
+        } else if ((col != 1) && (original->board[row][col-2] == 'O')) {
+			if ((col != 3) && (original->board[row][col-3] == switch_player(player))) {
+				if (original->board[row][col-4] == player) {
+					indx = col - 4;
+					move = get_space(row, indx);
+					move[2] = '-';
+					move[3] = '\0';
+					strncat(move, open, 3);
+				}
+			}
+		}
     } else if ((strcmp(direction, "right") == 0) && (col != 7)) {
         if ((original->board[row][col+1] == 'O') || (original->board[row][col+1] == player)) {
             free(move);
@@ -270,7 +312,17 @@ char *gen_move(struct state *original, char *open, int row, int col,  const char
             move[2] = '-';
             move[3] = '\0';
             strncat(move, open, 2);
-        }
+        } else if ((col != 6) && (original->board[row][col+2] == 'O')) {
+			if ((col != 4) && (original->board[row][col+3] == switch_player(player))) {
+				if (original->board[row][col+4] == player) {
+					indx = col + 4;
+					move = get_space(row, indx);
+					move[2] = '-';
+					move[3] = '\0';
+					strncat(move, open, 3);
+				}
+			}
+		}
     }
     if (!isdigit(move[1])) {
         free(move);
@@ -357,7 +409,7 @@ struct state **get_moves (struct state *current, int *count, char player)
                             states[counter] = possible;
                             counter++;
                         }
-                    } 
+                    }
                     free(open);
                 }
             }
@@ -507,12 +559,14 @@ static void *game_handler()
         if (switch_player(state->player) == our_player) {
             char *move = decide_move();
             fprintf(stdout, "%s\n", move);
+			print_board(state);
             update_state(move);
 
         } else {
             char move[6];
             fgets(move, 6, stdin);
             update_state(move);
+			print_board(state);
         }
     }
     pthread_exit(NULL);
