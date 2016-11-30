@@ -41,7 +41,6 @@ static bool tree_change = false; // Tree has been changed and thus tree creation
 static bool is_running = true;
 static char our_player;
 static int max_depth = 0;
-int check_moves(struct state *current);
 
 /**
  * print_board() - prints a board
@@ -183,9 +182,6 @@ static void update_state(char *move)
 			tree_change = true;
             max_depth = max_depth - tree_root->depth;
             print_board((struct state *) tree_root->value);
-	//		if (check_moves((struct state *) tree_root->value) == 0) {
-	//			is_running = false;
-			}
 			return;
 		}
 	}
@@ -224,10 +220,9 @@ char *get_space(int row, int col)
 	 * return as string LetterNumber-LetterNumber
 	  * which is the move
 	 */
-char *gen_move(struct state *original, char *open, int row, int col,  const char *direction)
+char *gen_move(struct state *original, char *open, int row, int col,  const char *direction, char player)
 {
 	// check which color is above/below/right/left of it
-    char player = switch_player(original->player);
 	char *move;
 	int indx;
 	move = calloc(14, sizeof(char));
@@ -237,7 +232,7 @@ char *gen_move(struct state *original, char *open, int row, int col,  const char
 			 * then the player cannot move into the open spot
 			*/
 			return move = "invalid";
-		} else if (original->board[row-2][col] == player) {
+		} else if ((row != 1) && (original->board[row-2][col] == player)) {
 			indx = row - 2;
 			move = get_space(indx, col);
 			move[2] = '-';
@@ -247,7 +242,7 @@ char *gen_move(struct state *original, char *open, int row, int col,  const char
 	} else if ((strcmp(direction, "down") == 0) && (row != 7)) {
 		if ((original->board[row+1][col] == 'O') || (original->board[row+1][col] == player)) {
 			return move = "invalid";
-		} else if (original->board[row+2][col] == player) {
+		} else if ((row != 6) && (original->board[row+2][col] == player)) {
 			indx = row + 2;
 			move = get_space(indx, col);
 			move[2] = '-';
@@ -257,7 +252,7 @@ char *gen_move(struct state *original, char *open, int row, int col,  const char
 	} else if ((strcmp(direction, "left") == 0) && (col != 0)) {
 		if ((original->board[row][col-1] == 'O') || (original->board[row][col-1] == player)) {
 			return move = "invalid";
-		} else if (original->board[row][col-2] == player) {
+		} else if ((col != 1) && (original->board[row][col-2] == player)) {
 			indx = col - 2;
 			move = get_space(row, indx);
 			move[2] = '-';
@@ -267,7 +262,7 @@ char *gen_move(struct state *original, char *open, int row, int col,  const char
 	} else if ((strcmp(direction, "right") == 0) && (col != 7)) {
 		if ((original->board[row][col+1] == 'O') || (original->board[row][col+1] == player)) {
 			return move = "invalid";
-		} else if (original->board[row][col+2] == player) {
+		} else if ((col != 6) && (original->board[row][col+2] == player)) {
 			indx = col + 2;
 			move = get_space(row, indx);
 			move[2] = '-';
@@ -292,9 +287,8 @@ char *gen_move(struct state *original, char *open, int row, int col,  const char
  * @current - current state
  * @count - amount of moves
 */
-struct state **get_moves (struct state *current, int *count)
+struct state **get_moves (struct state *current, int *count, char player)
 {
-    char player = switch_player(current->player);
 
 	struct state **states;
 	int tmpcount = 0;
@@ -306,7 +300,7 @@ struct state **get_moves (struct state *current, int *count)
 	}
 
 	// initial states are  exceptions
-	if ((current->action == NULL) && (player == 'B')) {
+	if ((empty == 0) && (player == 'B')) {
 		states = malloc(sizeof(struct state *)*2);
 		if (states == NULL) {
 			fprintf(stderr, "ERROR: Memory allocation failure.\n");
@@ -348,7 +342,7 @@ struct state **get_moves (struct state *current, int *count)
 				if (current->board[i][j] == 'O') {
 					char *open = get_space(i, j);
 					for (int k = 0; k < 4; k++) {
-						char *tomove = gen_move(current, open, i, j, direction[k]);
+						char *tomove = gen_move(current, open, i, j, direction[k], player);
 						if (strcmp(tomove, "invalid") != 0) {
 							if (counter > (empty*4)) {
 								states = realloc(states, sizeof(struct state *)*counter);
@@ -368,16 +362,20 @@ struct state **get_moves (struct state *current, int *count)
 }
 
 
-int check_moves(struct state *current) {
-
-	int *count;
-
-	get_moves(current, count);
+void check_moves(struct state *current)
+{
+	int count;
+	get_moves(current, &count, switch_player(current->player));
 	if (count == 0) {
-		return 0;
-	} else {
-		return 1;
-	}
+		if ((switch_player(current->player) == our_player)) {
+			// because if our player, then we have no moves to perform.
+				fprintf(stdout, "Opponent wins! \n");
+				is_running = false;
+			} else {
+				fprintf(stdout, "Player wins! \n");
+				is_running = false;
+			}
+		}
 }
 
 static void free_board_state(struct state *state)
@@ -437,8 +435,10 @@ static void _tree_node_eval(struct tree_node *node)
 	if (node->child_count == 0) {
 		int count = 0;
         struct state *state = node->value;
-		struct state **states = get_moves(state, &count);
-        state->eval_value = count;
+		struct state **states = get_moves(state, &count, switch_player(state->player));
+        int our_count = 0;
+		get_moves(state, &our_count, our_player);
+		state->eval_value = our_count;
 		for (int i = 0; i < count; i++) {
 			struct tree_node *new_node = add_tree_child(node, states[i]);
             max_depth = new_node->depth - tree_root->depth;
@@ -490,12 +490,16 @@ static void *make_tree()
 
 static void *game_handler()
 {
+	int count;
 	while (is_running) {
         struct state *state = tree_root->value;
 		if (switch_player(state->player) == our_player) {
+			fprintf(stdout, "Trying to decide a move...\n");
+			check_moves(state);
 			char *move = decide_move();
 			fprintf(stdout, "%s\n", move);
 			update_state(move);
+
 		} else {
 			char move[6];
 			fscanf(stdin, "%5s", move);
